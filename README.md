@@ -1,2 +1,2 @@
 # leetcode
-leetcode60問の練習
+[leetcode60問](https://leetcode.com/list/xo2bgr0r/)の練習
