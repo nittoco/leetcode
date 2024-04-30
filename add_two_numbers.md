@@ -91,3 +91,25 @@ class Solution:
 [YukiMichishitaさんの実装](https://github.com/YukiMichishita/LeetCode/blob/main/2_add_two_numbers/step2.py) <br>
 [hardjuiceさんの実装](https://discord.com/channels/1084280443945353267/1195700948786491403/1197114717001502822)
 [mike0121さんへのコメント](https://discord.com/channels/1084280443945353267/1196472827457589338/1197166381146329208)
+
+## Step4
+- 久しぶりに1から書くとやや時間はかかった
+- 変数名、whileの条件のレビューを反映
+  ```python
+  class Solution:
+    def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:
+        sentinel = ListNode(0)
+        prev_node = sentinel
+        carry = 0
+        while l1 or l2 or carry:
+            l1_val = l1.val if l1 else 0
+            l2_val = l2.val if l2 else 0
+            current_sum = l1_val + l2_val + carry
+            current_digit = current_sum % 10
+            prev_node.next = ListNode(current_digit)
+            carry = current_sum//10
+            l1 = l1.next if l1 else None
+            l2 = l2.next if l2 else None
+            prev_node = prev_node.next 
+        return sentinel.next
+  ```
