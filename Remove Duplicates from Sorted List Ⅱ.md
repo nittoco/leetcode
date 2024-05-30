@@ -186,3 +186,122 @@ class Solution:
 - https://discord.com/channels/1084280443945353267/1195700948786491403/1196701558382018590
 - https://discord.com/channels/1084280443945353267/1183683738635346001/1183691370683174973
 - https://hackage.haskell.org/package/base-4.19.0.0/docs/Data-List.html#v:group
+
+## Step4
+- 一回ずつ引き継ぐis_deletingバージョン、苦労した(15minくらい？)1回目よりはだいぶかかってないかも、最初に間違えたコード
+- uniqueとcurrentの初期位置でやや混乱した。どの変数がどういう役割をしているか、きちんと意識してコードを書く
+- 最初にどの変数が必要かをわかるのと、その初期設定をどうするかというのは、なかなか難しいですね
+
+```python
+
+class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        sentinel = ListNode(-1000)
+        sentinel.next = head
+        unique = sentinel
+        current = head
+        prev_val = -1000
+        is_delete = False
+        while current:
+            if prev_val == current.val:
+                is_delete = True
+            if current.next and current.val == current.next.val:
+                is_delete = True
+            if is_delete:
+                prev_val = current.val
+                current = current.next
+                continue
+            unique.next = current
+            unique = current
+            prev_val = current.val
+            current = current.next
+            is_delete = False
+        return sentinel.next
+```
+
+- 直したコード、以下直したところ
+    - if is_deleteの時の、is_deleteの引き継ぎ忘れ。ちゃんと全てを引き継ぐ。
+    - 最後にuniqueをNoneにつなげないと、全部値が一緒だった時にやばかった。コーナーケースに気を付ける。
+    - [sentinel.next](http://sentinel.next) = headはよく考えたらいらない
+
+```python
+
+class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        sentinel = ListNode(-1000)
+        unique = sentinel
+        current = head
+        prev_val = -1000
+        is_delete = False
+        while current:
+            if prev_val == current.val:
+                is_delete = True
+            if current.next and current.val == current.next.val:
+                is_delete = True
+            if is_delete:
+                prev_val = current.val
+                current = current.next
+                is_delete = False
+                continue
+            unique.next = current
+            unique = current
+            prev_val = current.val
+            current = current.next
+            is_delete = False
+        unique.next = None
+        return sentinel.next
+```
+
+- さらに引き継ぎの処理を共通化
+    - ifで完全に分岐させがちな癖があるが、defaultdictの時でもそうだがifとそれ以外の処理で共通化できる処理があればなるべくうまく統合する
+    - 消して１からまた書いた（一応）
+    - is_uniqueで、is_deleteと真偽逆の変数でもよかったかもね
+    
+    ```python
+    
+    class Solution:
+        def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+            sentinel = ListNode(-1000)
+            prev_val = -1000
+            unique = sentinel
+            current = head
+            is_delete = False
+            while current:
+                if current.next and current.val == current.next.val:
+                    is_delete = True
+                if prev_val == current.val:
+                    is_delete = True
+                if not is_delete:
+                    unique.next = current
+                    unique = current
+                prev_val = current.val
+                is_delete = False
+                current = current.next
+            unique.next = None
+            return sentinel.next
+    ```
+    
+- 「進める限り進める」バージョンもやや苦労してしまった
+    - uniqueとしても良い時の条件を考えるのに苦労した(if not unique.next.next or unique.next.val != unique.next.next.val:)　次の値との比較だけしてるけど、前の値と同じ場合をどうしよう？などと考えてしまった。
+    - Noneでない条件の確認をどのnextまで考えればいいかもやや考えてしまった
+    - 先に下の進める処理を書いてから上を書いたほうが書きやすかったかも？
+    - 上のuniqueとしても良い条件を考えるのに苦労しないなら、このコードが自分にとって一番自然なのだが…
+    
+
+```python
+
+def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        sentinel = ListNode()
+        sentinel.next = head
+        unique = sentinel
+        while unique and unique.next:
+            if not unique.next.next or unique.next.val != unique.next.next.val:
+                unique = unique.next
+                continue
+            while unique.next.next and unique.next.val == unique.next.next.val:
+                unique.next = unique.next.next
+            unique.next = unique.next.next
+        return sentinel.next
+```
+
+- とここまでやって前の自分のコードを見ると、今のコードの方が好みかも
