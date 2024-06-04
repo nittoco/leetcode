@@ -305,3 +305,36 @@ def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
 ```
 
 - とここまでやって前の自分のコードを見ると、今のコードの方が好みかも
+
+- dummyなしバージョンもあると知りさらに後日実装
+
+- また結構苦労した。
+- この問題は何回も復習が必要かも
+  ```python
+
+  class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        prev_val = None
+        result = None
+        current = head
+        while current:
+            remove = False
+            if prev_val == current.val:
+                remove = True
+            if current.next and current.val == current.next.val:
+                remove = True
+            if remove:
+                if result:
+                    unique.next = current.next
+                prev_val = current.val
+                current = current.next
+                continue
+            if not result:
+                result = current
+            else:
+                unique.next = current
+            unique = current
+            prev_val = current.val
+            current = current.next
+        return result
+  ```
