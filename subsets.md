@@ -144,3 +144,22 @@ class Solution:
             return inclusive + not_inclusive
         return subset_after(0)
 ```
+
+## Step4
+
+Step3と同じロジックをループで実装
+[deepcopyを知らなかった](https://docs.python.org/3/library/copy.html)ので勉強になった
+
+```python
+
+class Solution:
+  def subsets(self, nums: List[int]) -> List[List[int]]:
+    copied_nums = nums.copy()
+    all_subsets = [[]]
+    while copied_nums:
+      num = copied_nums.pop()
+      num_include_subsets = copy.deepcopy(all_subsets)
+      for subset in num_include_subsets:
+        subset.append(num)
+      all_subsets += num_include_subsets
+    return all_subsets
