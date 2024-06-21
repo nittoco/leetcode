@@ -132,3 +132,65 @@ class Solution:
                 return i
         return -1
 ```
+## Step4
+- LinkedHashMapを自作した
+- 参考: https://discord.com/channels/1084280443945353267/1201211204547383386/1211052303134629888
+- 最初は、self.dのvalueにOrderedDictのvalueをそのまま持たせていたが、delの時に計算量がかかってしまうなあとなった。上のdiscordのやりとりを参考に、self.dのvalueにはnodeを丸ごと持たせるようにした。
+
+```python
+
+class LinkedListDictNode:
+    def __init__(self, key=None, value=None):
+        self.prev = None
+        self.next = None
+        self.key = key
+        self.value = value
+
+class OrderedDict:
+    def __init__(self):
+        self.sentinel = LinkedListDictNode()
+        self.sentinel.prev = self.sentinel
+        self.sentinel.next = self.sentinel
+        self.last = self.sentinel
+        self.d = {}
+        
+    def _add_node(self, node):
+        node.next = self.sentinel
+        node.prev = self.last
+        self.last.next = node
+        self.sentinel.prev = node
+        self.last = node
+        
+    def _delete_node(self, node):
+        if node == self.last:
+            self.last = self.last.prev
+        node.prev.next = node.next
+        node.next.prev = node.prev
+        node.next = None
+        node.prev = None
+        
+    def __setitem__(self, key, value):
+        new_node = LinkedListDictNode(key, value)
+        self.d[key] = new_node
+        self._add_node(new_node)
+        
+    def __getitem__(self, key):
+        return self.d[key].value
+    
+    def __delitem__(self, key):
+        self._delete_node(self.d[key])
+        del self.d[key]
+        
+    def __contains__(self, key):
+        return key in self.d
+        
+    def pop(self):
+        last_value = self.last.value
+        self.__delitem__(self.last.key)
+        return last_value
+        
+    def popfirst(self):
+        first_value = self.sentinel.next.value
+        self.__delitem__(self.sentinel.next.key)
+        return first_value
+```
