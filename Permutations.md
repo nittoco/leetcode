@@ -254,3 +254,90 @@ class Solution:
                 all_permutations.append(permutation[:i] + [added_num] + permutation[i:])
         return all_permutations
 ```
+
+## Step4
+- next permutationの追加の選択肢の実装([参考](https://discord.com/channels/1084280443945353267/1221030192609493053/1225674901445283860))
+  - while Trueを使う方法。whileを使うのに抵抗感があったが、意外と綺麗にかける
+    - 途中からコピったらインデントが変に。。。見逃してください。。。
+
+```python
+	　	
+def create_next_permutation(permutation):
+            next_permutation = permutation.copy()
+            max_value = -inf
+            pivot_index = len(next_permutation) - 1
+            while True:
+                if pivot_index == -1:
+                    return None
+                if next_permutation[pivot_index] < max_value:
+                    break
+                max_value = max(next_permutation[pivot_index], max_value)
+                pivot_index -= 1
+            larger_min_value = inf
+            for i in range(pivot_index+1, len(next_permutation)):
+                if next_permutation[i] < next_permutation[pivot_index] or next_permutation[i] > larger_min_value:
+                    continue
+                larger_min_value = next_permutation[i]
+                swap_index = i
+            next_permutation[pivot_index], next_permutation[swap_index] = next_permutation[swap_index], next_permutation[pivot_index]
+            next_permutation[pivot_index + 1:] = list(reversed(next_permutation[pivot_index + 1:]))
+            return next_permutation
+```
+
+- return Noneの条件を関数化する方法。
+    - find_pivot_indexの関数で、見つからない時-1を返すか迷ったが、別でFalseを返す方が他の人が使うときに親切かなと思いそうした
+    - max_valueを記録するより[i] < [i+1]の方がいいね
+
+```python
+
+class Solution:
+    def permute(self, nums: List[int]) -> List[List[int]]:
+        def find_pivot_index(permutation):
+            for i in range(len(permutation) - 2, -1, -1):
+                if permutation[i] < permutation[i + 1]:
+                    return i, True
+            return -1, False
+        
+        def create_next_permutation(permutation):
+            pivot_index, is_finding = find_pivot_index(permutation)
+            if not is_finding:
+                return None
+            swap_value = inf
+            for i in range(pivot_index + 1, len(permutation)):
+                if permutation[i] < permutation[pivot_index] or permutation[i] > swap_value:
+                    continue
+                swap_value = permutation[i]
+                swap_index = i
+            permutation[swap_index], permutation[pivot_index] = permutation[pivot_index], permutation[swap_index]
+            permutation[pivot_index + 1:] = list(reversed(permutation[pivot_index + 1:]))
+            return permutation
+```
+
+- Python独特の文法。まだ慣れない。
+
+```python
+
+class Solution:
+    def permute(self, nums: List[int]) -> List[List[int]]:
+        def create_next_permutation(permutation):
+            for i in range(len(permutation) - 2, -1, -1):
+                if permutation[i] < permutation[i+1]:
+                    pivot_index = i
+                    break
+            else:
+                return None
+            swap_value = inf
+            for i in range(pivot_index + 1, len(permutation)):
+                if permutation[i] < permutation[pivot_index] or permutation[i] > swap_value:
+                    continue
+                swap_value = permutation[i]
+                swap_index = i
+            permutation[swap_index], permutation[pivot_index] = permutation[pivot_index], permutation[swap_index]
+            permutation[pivot_index + 1:] = list(reversed(permutation[pivot_index + 1:]))
+            return permutation
+```
+
+- C++のnext_permutationの実装、組み込みを有効に使いやたらすっきり
+    - return left != r_last; はなるほど
+
+https://discord.com/channels/1084280443945353267/1210494002277908491/1211061690490425524
