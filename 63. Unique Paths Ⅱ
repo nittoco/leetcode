@@ -1,0 +1,105 @@
+### Step1
+
+- 最初、row == 0 or column == 0の時１に全部してしまっていたが、それぞれ上、左に障害物があったら0になることに気づかず
+- どのように初期化するか迷った末こうした
+
+```python
+
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        height = len(obstacleGrid)
+        width = len(obstacleGrid[0])
+        num_paths = [[0] * width for _ in range(height)]
+        for row in range(height):
+            for column in range(width):
+                if obstacleGrid[row][column]:
+                    continue
+                if row == 0 and column == 0:
+                    num_paths[row][column] = 1
+                    continue
+                num_up = num_paths[row - 1][column] if row - 1 >= 0 else 0
+                num_left = num_paths[row][column - 1] if column - 1 >= 0 else 0
+                num_paths[row][column] = num_up + num_left
+        return num_paths[height - 1][width - 1]
+```
+
+## Step2
+
+- 参考コード
+    - https://github.com/hayashi-ay/leetcode/pull/44/files
+    - https://github.com/shining-ai/leetcode/pull/34/files
+    - https://github.com/fhiyo/leetcode/pull/35/files
+- 色々初期化ロジックはあるが、Step1の自分のやつが結構わかりやすいと思う(自画自賛)
+    - ただ[0][0]の処理は外でやった方が素直だったかも(https://github.com/goto-untrapped/Arai60/pull/33#discussion_r1665010694)
+- 1DPでも書いてみる
+    - O(min(height, width))にするにはobstacles配列を行列転置する必要があり、ややこしいのでやめた
+    
+    ```python
+    
+    class Solution:
+        def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+            height = len(obstacleGrid)
+            width = len(obstacleGrid[0])
+            num_paths = [0] * width
+            if obstacleGrid[0][0]:
+                return 0
+            num_paths[0] = 1
+            for row in range(height):
+                for column in range(width):
+                    if obstacleGrid[row][column]:
+                        num_paths[column] = 0
+                        continue
+                    if column == 0:
+                        continue
+                    num_paths[column] += num_paths[column - 1]
+            return num_paths[-1]
+    ```
+    
+- でも[0][0]の処理を外でするとif row - 1≥0 else 0という書き方はできずif文のインデントが増えちゃうのか、難しい
+
+```python
+
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        if obstacleGrid[0][0]:
+            return 0
+        width = len(obstacleGrid[0])
+        height = len(obstacleGrid)
+        num_paths = [[0] * width for _ in range(height)]
+        num_paths[0][0] = 1
+        height = len(num_paths)
+        width = len(num_paths[0])
+        for row in range(height):
+            for column in range(width):
+                if obstacleGrid[row][column]:
+                    continue
+                if column - 1 >= 0:
+                    num_paths[row][column] += num_paths[row][column - 1]
+                if row - 1 >= 0:
+                    num_paths[row][column] += num_paths[row - 1][column]
+        return num_paths[-1][-1]
+```
+
+## Step3
+
+- 結局この書き方に
+
+```python
+python
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        height = len(obstacleGrid)
+        width = len(obstacleGrid[0])
+        num_paths = [[0] * width for _ in range(height)]
+        for row in range(height):
+            for column in range(width):
+                if obstacleGrid[row][column]:
+                    continue
+                if row == 0 and column == 0:
+                    num_paths[row][column] = 1
+                    continue
+                up_num = num_paths[row - 1][column] if row - 1 >= 0 else 0
+                left_num = num_paths[row][column - 1] if column - 1 >= 0 else 0
+                num_paths[row][column] = up_num + left_num
+        return num_paths[-1][-1]
+```
