@@ -126,3 +126,36 @@ class Solution:
             left_to_right = not left_to_right
         return result
 ```
+
+## Step4
+
+- nodchipさんの指摘(same_depth_nodesに全部突っ込んだ後に、zigzag_orderedにsame_depth_nodesを入れた方がわかりやすい)などを反映
+
+```python
+
+from collections import deque
+
+class Solution:
+    def zigzagLevelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:
+        if not root:
+            return []
+        node_and_depth = deque([(root, 0)])
+        zigzag_ordered = []
+        same_depth_nodes = []
+        prev_depth = None
+        while node_and_depth:
+            node, depth = node_and_depth.popleft()
+            if prev_depth is not None and prev_depth != depth:
+                zigzag_ordered.append(same_depth_nodes)
+                same_depth_nodes = []
+            same_depth_nodes.append(node.val)
+            if node.left:
+                node_and_depth.append((node.left, depth + 1))
+            if node.right:
+                node_and_depth.append((node.right, depth + 1))
+            prev_depth = depth
+        zigzag_ordered.append(same_depth_nodes)
+        for i in range(1, len(zigzag_ordered), 2):
+            zigzag_ordered[i].reverse()
+        return zigzag_ordered
+```
