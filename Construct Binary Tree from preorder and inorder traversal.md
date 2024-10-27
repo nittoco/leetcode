@@ -118,7 +118,7 @@ class Solution:
 
 ```
 
-- dataclassのドキュメントと、ソースコードを読んだ
+- dataclassのドキュメントと、ソースコード(https://github.com/python/cpython/blob/main/Lib/dataclasses.py)を読んだ
 - process_class(L930)で__init__とか__repr__みたいな特殊メソッドを定義して、クラスを作っているみたい。主な関数はこんな感じ？
     - def init_fn(L614)
         - 関数の初期化。init_paramとfield_initが呼ばれている。前者はx:int=3のような__init__関数のパラメータ文字列、後者はself.x = 1のような__init__関数の中身の文字列が作られる。その後、add_fnを__init__関数で実行
