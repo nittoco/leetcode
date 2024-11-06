@@ -245,3 +245,155 @@ class Solution:
             root.right = self.buildTree(preorder[-right_node_count:], inorder[-right_node_count:])
         return root
 ```
+
+## Step4(追加のやり方)
+- [この辺](https://discord.com/channels/1084280443945353267/1247673286503039020/1300957769477918791)　を参照
+- inorder順に見ていく方法
+- 最初わけわかんなくなった(下が訳わかんなくなってエラーが出たコード)
+    - 各ループの時点で、stackにどこのnodeがどの順序で入っていれば良いのか混乱していた
+
+```python
+# 訳わかんなくなってエラーが出たコード
+
+# inorer順に見てく書き方
+class Solution:
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
+        # 入力値のチェック 今回は省略
+        stack = []
+        
+        # inorderで今までのnodeの中で、.rightがまだのものを繋げる関数
+        def connect_right_child_nodes_so_far(node):
+            child = None
+            while stack:
+                parent = stack[-1]
+                if parent == node:
+                    return child
+                parent.right = child
+                child = stack.pop()
+        
+        node_val_to_preorder_index = {val: i for i, val in enumerate(preorder)}
+        prev_val = None
+        dummy = TreeNode()
+        root = None
+        for val in inorder:
+            node = TreeNode(val)
+            stack.append(node)
+            if prev_val is None:
+                prev_val = val
+                continue
+            if node_val_to_preorder_index[prev_val] < node_val_to_preorder_index[val]:
+                prev_val = val
+                continue
+            if node_val_to_preorder_index[val] == 0:
+                root = node
+                dummy.left = root
+            node.left = connect_right_child_nodes_so_far(node)
+            prev_val = val
+        return connect_right_child_nodes_so_far(dummy)
+```
+
+- かなり時間がかかったが、なんとか書けた、苦労した
+    - stackに入っているデータの不変条件をよく意識
+    - う〜ん、スッキリするような、しないような？？？
+
+```python
+class Solution:
+    dummy_root_preorder_index = -1
+    dummy_root_val = 0
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
+        stack = []
+        node_val_to_preorder_index = {val: i for i, val in enumerate(preorder)}
+        dummy_root = None
+        inorder.append(self.dummy_root_val)
+        node_val_to_preorder_index[None] = self.dummy_root_preorder_index
+
+        def construct_left_child_tree(node):
+            child = None
+            while stack:
+                parent = stack.pop()
+                parent.right = child
+                if node_val_to_preorder_index[parent.val] == node_val_to_preorder_index[node.val] + 1:
+                    return parent
+                child = parent
+
+        prev_val = None
+        for val in inorder:
+            node = TreeNode(val)
+            if node_val_to_preorder_index[node.val] == -1:
+                dummy_root = node
+            if prev_val is not None and node_val_to_preorder_index[node.val] < node_val_to_preorder_index[prev_val]:
+                node.left = construct_left_child_tree(node)
+            stack.append(node)
+            prev_val = val
+        return dummy_root.left
+```
+
+- odaさんのコードを見た。construct_left_treeの中でstackの後ろを見て、ダメだったら終わりにすれば、いちいちpreorder順をinorderのforループの中で調べなくていいのか
+
+```python
+
+class Solution:
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
+        node_val_to_preorder_index = {val: i for i, val in enumerate(preorder)}
+        stack = []
+        inorder_plus_dummy = inorder + [None]
+        node_val_to_preorder_index[None] = -inf
+        
+        def construct_left_tree(node):
+            child = None
+            while True:
+                parent = stack[-1] if stack else None
+                if not parent or node_val_to_preorder_index[parent.val] < node_val_to_preorder_index[node.val]:
+                    return child
+                parent.right = child
+                stack.pop()
+                child = parent
+              
+        for val in inorder_plus_dummy:
+            node = TreeNode(val)
+            node.left = construct_left_tree(node)
+            stack.append(node)
+        dummy = stack[-1]
+        return dummy.left
+```
+
+- preorder順に見てくやつ(範囲情報も入れる)も実装してみた。
+    - 最初どういうことか分かってなかったが、自分のpositionと、stackに入っている自分の先祖の中で、自分より右にある中で一番左のpositionを入れると判定できるという案か
+    - 後者が、Step1の自分の実装では、結果的に一個上のnodeのpositionになってる
+    - この考えの方が自然なのか？？
+    - odaさんの実装とは違い、右につながるやつの親はstackに入れっぱ
+
+```python
+
+from dataclasses import dataclass
+
+@dataclass
+class InorderPosition:
+    node: TreeNode
+    left_limit: int
+    right_limit: int
+
+class Solution:
+    def search_parent_of_right_child(self, node: TreeNode, current_inorder_index: int, stack: List[InorderPosition]):
+        while stack:
+            if current_inorder_index < stack[-1].right_limit:
+                return stack[-1]
+            stack.pop()
+                
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:
+        dummy = TreeNode()
+        stack = [InorderPosition(dummy, inf, inf)]
+        node_val_to_inorder_index = {val: i for i, val in enumerate(inorder)}
+        for val in preorder:
+            node = TreeNode(val)
+            current_inorder_index = node_val_to_inorder_index[val]
+            back = stack[-1]
+            if current_inorder_index < back.left_limit:
+                back.node.left = node
+                stack.append(InorderPosition(node, current_inorder_index, back.left_limit))
+                continue
+            back = self.search_parent_of_right_child(node, current_inorder_index, stack)
+            back.node.right = node
+            stack.append(InorderPosition(node, current_inorder_index, back.right_limit))
+        return dummy.left
+```
