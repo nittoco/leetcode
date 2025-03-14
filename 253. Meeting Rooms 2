@@ -1,0 +1,232 @@
+### Step1
+
+- 「数字が同じ場合、endのマイナスをstartでプラスより先にする」というのが結果としてFalseとTrueの順序で達成できている形になっているが、わかりにくいかもしれない
+    - ただわかりやすくする手順が、「コメントを書く」とかしか思いつかない
+
+```python
+
+class Solution:
+    def minMeetingRooms(self, intervals: List[Interval]) -> int:
+        start_and_end_times = []
+        for interval in intervals:
+            heapq.heappush(start_and_end_times, (interval.start, True))
+            heapq.heappush(start_and_end_times, (interval.end, False))
+        num_rooms_needed = 0
+        result = 0
+        for time in start_and_end_times:
+            time, is_start = heapq.heappop(start_and_end_times)
+            if is_start:
+                num_rooms_needed += 1
+            else:
+                num_rooms_needed -= 1
+            result = max(result, num_rooms_needed)
+        return result
+
+```
+
+- startとendの配列を分けるとどうなるか。書いてみた
+
+## Step2
+
+- https://github.com/hayashi-ay/leetcode/pull/62/files
+    - num_rooms_neededより、「今の今必要」というニュアンスを出すためにnum_ongoing_meetingsなどの名称はよさそう
+    - STARTとENDの順番、クラス変数みたいな感じで入れて、コメントにあとで書くのが良さそう
+    - ENDの時continueより、if elseで対比させる方が好み
+    - intervalはstartとendのペアとしてまとめて入れて、startを取り出すときにそれより前のendをpopする方法もある(意外とこの方法も好みかも)
+    - end_timesという命名。「まだ処理していない」というニュアンスを入れたいが、難しい
+    - end_times[0] ≤ startの不等号を一回間違えて<にした。よくない。
+
+```python
+"""
+Definition of Interval:
+class Interval(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+"""
+
+import heapq
+
+class Solution:
+    def make_sorted_intervals_by_start(
+        self, intervals: List[Interval]
+    ) -> List[tuple[int, int]]:
+        sorted_intervals = []
+        for interval in intervals:
+            sorted_intervals.append((interval.start, interval.end))
+        sorted_intervals = sorted(sorted_intervals)
+        return sorted_intervals
+
+    def minMeetingRooms(self, intervals: List[Interval]) -> int:
+        end_times = []
+        num_ongoing_meetings = 0
+        result = 0
+        sorted_intervals = self.make_sorted_intervals_by_start(intervals)
+        for start, end in sorted_intervals:
+            while end_times and end_times[0] <= start:
+                heapq.heappop(end_times)
+                num_ongoing_meetings -= 1
+            heapq.heappush(end_times, end)
+            num_ongoing_meetings += 1
+            result = max(result, num_ongoing_meetings)
+        return result
+
+```
+
+https://github.com/shining-ai/leetcode/pull/56/files
+
+- 会議終わったのに部屋を利用してる人がいたら、後から引っ剥がして新しくstartする人に渡す方法
+    - 少しわかりにくく感じた
+
+```python
+"""
+Definition of Interval:
+class Interval(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+"""
+
+import heapq
+
+class Solution:
+    def make_sorted_intervals_by_start(self, intervals: List[Interval]) -> List[tuple[int, int]]:
+        sorted_intervals = []
+        for interval in intervals:
+            sorted_intervals.append((interval.start, interval.end))
+        sorted_intervals = sorted(sorted_intervals)
+        return sorted_intervals
+
+    def minMeetingRooms(self, intervals: List[Interval]) -> int:
+        sorted_intervals = self.make_sorted_intervals_by_start(intervals)
+        ended_and_using = []
+        for start, end in sorted_intervals:
+            if ended_and_using and ended_and_using[0] <= start:
+                heapq.heappop(ended_and_using)
+            heapq.heappush(ended_and_using, end)
+        return len(ended_and_using)
+
+```
+
+https://github.com/Yoshiki-Iwasa/Arai60/pull/61
+
+- foldを使った関数型的な書き方
+- Pythonだとfunctoolのreduceという関数があるらしい(chatGPTに聞いた)
+    - https://docs.python.org/3/library/functools.html#functools.reduce
+- あとは、比較のために__lt__とかを上書き実装する方法もある気がする。
+    - [PEP8](https://peps.python.org/pep-0008/) によると、functools.total_ordering()というデコレータも手間を省くために使えるらしい。
+    - わかりやすい気もするが、ソートのルールを目を動かす必要もありそうで、難しい
+- [NotImplemented](https://docs.python.org/3/library/constants.html#NotImplemented)と、[NotImplementedError](https://docs.python.org/3/library/exceptions.html#NotImplementedError)の違い
+    - NotImplemetedは、二項演算子をサポートしていない時に返す
+    - NotImplementedErrorは、開発途中や、抽象クラスのサブクラスで定義すべきって時に返す
+
+```python
+"""
+Definition of Interval:
+class Interval(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+"""
+from dataclasses import dataclass
+from functools import total_ordering, reduce
+
+@dataclass
+class RoomCounter:
+    using_count: int
+    max_count: int
+
+@dataclass
+@total_ordering
+class EventTime:
+    time: int
+    event: str
+
+    def __lt__(self, other: "EventTime") -> bool:
+        if self.time == other.time:
+            return self.event == "end" and other.event == "start"
+        return self.time < other.time
+
+    def __eq__(self, other: "EventTime") -> bool:
+        return self.time == other.time and self.event == other.event
+                      
+
+class Solution:
+    def transform_intervals_to_event_times(self, intervals: List[Interval]) -> List[EventTime]:
+        result = []
+        for interval in intervals:
+            result.append(EventTime(interval.start, "start"))
+            result.append(EventTime(interval.end, "end"))
+        return result
+
+    def minMeetingRooms(self, intervals: List[Interval]) -> int:
+        def min_meeting_rooms_helper(previous: RoomCounter, time: EventTime) -> RoomCounter:
+            new_using = 0
+            new_max = 0
+            if time.event == "start":
+                new_using = previous.using_count + 1
+            else:
+                new_using = previous.using_count - 1
+            new_max = max(new_using, previous.max_count)
+            return RoomCounter(new_using, new_max)
+
+        events = self.transform_intervals_to_event_times(intervals)
+        result = reduce(min_meeting_rooms_helper, sorted(events), RoomCounter(0, 0))
+        return result.max_count
+```
+
+https://github.com/goto-untrapped/Arai60/pull/61/files
+
+- rooms.get(i).get(rooms.get(i).size() - 1)[1] みたいに長いとやや見にくい
+- 多重配列、何が入っているか読んでてわからなくなりがちでむずいなあ
+
+### Step3
+
+```python
+
+"""
+Definition of Interval:
+class Interval(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+"""
+from dataclasses import dataclass
+from functools import total_ordering
+
+@dataclass
+@total_ordering
+class EventTime:
+    time: int
+    event: str
+
+    def __lt__(self, other: "EventTime") -> bool:
+        if self.time == other.time:
+            return self.event == "end" and other.event == "start"
+        return self.time < other.time
+
+    def __eq__(self, other: "EventTime") -> bool:
+        return self.time == other.time and self.event == other.event
+                      
+
+class Solution:
+    def transform_intervals_to_event_times(self, intervals: List[Interval]) -> List[EventTime]:
+        result = []
+        for interval in intervals:
+            result.append(EventTime(interval.start, "start"))
+            result.append(EventTime(interval.end, "end"))
+        return result
+
+    def minMeetingRooms(self, intervals: List[Interval]) -> int:
+        event_times = self.transform_intervals_to_event_times(intervals)
+        using_rooms_count = 0
+        needed_rooms_count = 0
+        for event_time in sorted(event_times):
+            event = event_time.event
+            if event == "start":
+                using_rooms_count += 1
+            else:
+                using_rooms_count -= 1
+            needed_rooms_count = max(needed_rooms_count, using_rooms_count)
+        return needed_rooms_count
+```
