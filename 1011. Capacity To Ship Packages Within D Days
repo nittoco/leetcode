@@ -1,0 +1,190 @@
+### Step1
+
+- 二分探索の復習
+    - 欲しいもの: 入力のdays以内に運べる、最小のcapacity
+    - そのためにあるべき、ループを抜けた状態: capacity_small = capacity_largeの値が答え。それ以上のcapacityだと、かかる日にちがdays「以下」。それより小さいcapacityだと、かかる日にちがdays「より大きい」(daysを含まない)
+    - 各ループが終わった後の状態: capacity_small「より小さい」ならば、days「より」日数かかってしまう。capacity_large「以上」であるならば、days「以下」で必ずできる
+        - capacity_small ≤ X < capacity_largeのところが「非確定」
+    - 無限ループにならない: capacity_middle =  (capacity_small + capacity_large) // 2なので、small ≤ middle < largeである。small = middle + 1、large = middleのどっちかなので、必ず区間はループごとに少なくとも1縮む
+- if not weightsの処理、実務だとWarningのロギングとか出すのかな
+
+```python
+class Solution:
+    def caluculate_minimum_days_to_ship(self, weights, capacity):
+        days = 1
+        today_sum_weights = 0
+        for weight in weights:
+            if weight > capacity:
+                return sys.maxsize 
+            if today_sum_weights + weight > capacity:
+                today_sum_weights = 0
+                days += 1
+            today_sum_weights += weight
+        return days
+
+    def shipWithinDays(self, weights: List[int], days: int) -> int:
+        if not weights:
+            return 0
+        capacity_small = 1
+        capacity_large = sum(weights) + 1
+        while capacity_small < capacity_large:
+            capacity_middle = (capacity_small + capacity_large) // 2
+            days_for_middle = self.caluculate_minimum_days_to_ship(weights, capacity_middle)
+            if days < days_for_middle:
+                capacity_small = capacity_middle + 1
+            else:
+                capacity_large = capacity_middle
+        return capacity_small
+```
+
+## Step2
+
+- if not weightsの処理は呼び出される側の関数(caluculate_minimum_days_to_ship)につけた方がいいのかなあ。この関数も、wegithsが空のまま他から呼び出されるかもしれないし。
+
+```python
+
+class Solution:
+    def caluculate_minimum_days_to_ship(self, weights: List[int], capacity: int) -> int:
+        if not weights:
+            return 0
+        days = 1
+        today_sum_weights = 0
+        for weight in weights:
+            if weight > capacity:
+                return sys.maxsize 
+            if today_sum_weights + weight > capacity:
+                today_sum_weights = 0
+                days += 1
+            today_sum_weights += weight
+        return days
+
+    def shipWithinDays(self, weights: List[int], days: int) -> int:
+        capacity_small = 1
+        capacity_large = sum(weights) + 1
+        while capacity_small < capacity_large:
+            capacity_middle = (capacity_small + capacity_large) // 2
+            days_for_middle = self.caluculate_minimum_days_to_ship(weights, capacity_middle)
+            if days < days_for_middle:
+                capacity_small = capacity_middle + 1
+            else:
+                capacity_large = capacity_middle
+        return capacity_small
+```
+
+- https://github.com/shining-ai/leetcode/pull/44/files
+    - 大まかな違い
+        - 二分探索をする側で、capacity_smallをmax(weights)まで狭めている
+        - 関数で、必要な日数を返すだけではなく、その日数で運べるかTrue/Falseまでを判定している
+        - 自分も書いてて微妙に迷ったが、自分の関数の構成の方が他の用途にも使える形になるかなあと思い、上のように書いた。(が、いろんな人のを読んでると結構みんなmax(weights)で書いてるから迷ってきた、、、)
+- https://github.com/fhiyo/leetcode/pull/45/files
+    - いやー、daysが0以下の考慮が抜けてましたね。sum(weights) + 1が返ってくるのはやばい。
+    - Stepの後半で、関数を、必要な日数を返すやつからTrue/Falsse判定を返すやつに直している
+    - weight > capacityの判定がない方がコードが簡潔だという意見もある。ただ、capacity_smallがmax(weights)なのも、やや読む側に認知負荷があるように思うので、難しい
+- https://github.com/sakupan102/arai60-practice/pull/45/files
+    - 変数名はlowやhighの方がよい？難しい
+- https://github.com/SuperHotDogCat/coding-interview/pull/27/files
+    - bisectで関数化すると、変数名で頑張らなくてもいいかも。確かに。
+- https://github.com/TORUS0818/leetcode/pull/46/files
+    - 日数の情報は脇役で使いたいというコメントも気持ちはわかる。bisectで関数化すればこれも解決しそう。
+    - caluculate_minimum_days_to_shipは他の用途でも汎用的に使えそうなので、個人的には作りたい気持ちがある。
+        - これを外部関数として定義すれば、テストやデバッグもやりやすいと思う
+    - やはり、weight > capacityの判定はあったほうがいい気がする
+- https://github.com/olsen-blue/Arai60/pull/44/files
+    - 二分探索の左を、考えた上で0から1に変更している
+        - 確かに左端は閉区間なので、この方がいいのかなあ。
+    - オーバーした際の処理は、today_sum_weights += weightの処理をオーバーしてない時と共通化する方か個人的に好み
+- https://github.com/saagchicken/coding_practice/pull/10/files
+    - remaingの初期値を0にして、daysの初期値も0にするのか〜。
+        - こっちのコードでいうと、today_sum_weightの初期値をcapacityにすることでdaysを0から始める感じ
+        - これどうかな〜迷うなあ
+- https://github.com/Ryotaro25/leetcode_first60/pull/51/files
+    - ヘッダファイルのincludeについて勉強
+    - Makefileの書き方はよくわかっていない。いつかやった方がいい気もするが。
+- 二分探索の初期値について
+    - 「capacity_small「より小さい」ならば、days「より」日数かかってしまう。capacity_large「以上」であるならば、days「以下」で必ずできる」が不変条件なので、capacity_largeの初期値はsum(weights)ではなくsum(weights) + 1がいい気もするが、なんとも迷う(sum(weights)でも間違いではない)
+- https://github.com/hroc135/leetcode/pull/42/files
+    - https://cs.opensource.google/go/go/+/master:src/slices/sort.go;l=158
+    - Goの二分探索
+    - コメントに不変条件が書いてあり良いなと思った。
+- rangeの実装
+    - https://github.com/python/cpython/blob/main/Objects/rangeobject.c#L318
+    - えーなんか想像と違った。startとstopとstepとlengthだけ保持してて、アクセスする時は等差数列の公式でやってる感じか
+    - だからO(1)でアクセスできるのか
+    - ドキュメントにも書いてあった。ちゃんと読んでなかった。
+    
+    https://docs.python.org/ja/3/library/stdtypes.html#typesseq-range
+    
+    > [`range`](https://docs.python.org/ja/3/library/stdtypes.html#range) 型が通常の [`list`](https://docs.python.org/ja/3/library/stdtypes.html#list) や [`tuple`](https://docs.python.org/ja/3/library/stdtypes.html#tuple) にまさる点は、[`range`](https://docs.python.org/ja/3/library/stdtypes.html#range) オブジェクトがサイズや表す範囲にかかわらず常に一定の (小さな) 量のメモリを使うことです (`start`、`stop`、`step` の値のみを保存し、後は必要に応じて個々の項目や部分 range を計算するためです)。
+    > 
+- 以下の実装は自分的には結構好きだが、冗長かもしれない
+
+```python
+class Solution:
+    def load_items_until_fill(
+        self, capacity: int, weights: List[int], num_loaded_so_far: int
+    ) -> int:
+        remaining_capacity = capacity
+        num_loaded = num_loaded_so_far
+        while num_loaded < len(weights) and weights[num_loaded] <= remaining_capacity:
+            remaining_capacity -= weights[num_loaded]
+            num_loaded += 1
+        return num_loaded
+
+    def calucalate_needed_day_to_ship(self, weights: List[int], capacity: int) -> int:
+        needed_day = 0
+        num_loaded_so_far = 0
+        while num_loaded_so_far < len(weights):
+            num_loaded = self.load_items_until_fill(
+                capacity, weights, num_loaded_so_far
+            )
+            if num_loaded == num_loaded_so_far:
+                return sys.maxsize
+            num_loaded_so_far = num_loaded
+            needed_day += 1
+        return needed_day
+
+    def shipWithinDays(self, weights: List[int], days: int) -> int:
+        assert days > 0
+
+        def bisect_key_helper(capacity):
+            return self.calucalate_needed_day_to_ship(weights, capacity) <= days
+
+        return bisect_left(range(sum(weights)), 1, key=bisect_key_helper)
+
+```
+
+## Step3
+
+```python
+class Solution:
+    def load_items_until_fill(
+        self, num_loaded_so_far: int, capacity: int, weights: List[int]
+    ) -> int:
+        num_loaded = num_loaded_so_far
+        remaining_capacity = capacity
+        while num_loaded < len(weights) and weights[num_loaded] <= remaining_capacity:
+            remaining_capacity -= weights[num_loaded]
+            num_loaded += 1
+        return num_loaded
+
+    def caluculate_needed_days_to_ship(self, capacity: int, weights: List[int]) -> int:
+        needed_days = 0
+        num_loaded_so_far = 0
+        while num_loaded_so_far < len(weights):
+            num_loaded = self.load_items_until_fill(num_loaded_so_far, capacity, weights)
+            if num_loaded == num_loaded_so_far:
+                return sys.maxsize
+            num_loaded_so_far = num_loaded
+            needed_days += 1
+        return needed_days
+
+    def shipWithinDays(self, weights: List[int], days: int) -> int:
+        if days <= 0:
+            raise ValueError("days must be greater than 0")
+        
+        def binary_search_helper(capacity):
+            return self.caluculate_needed_days_to_ship(capacity, weights) <= days
+
+        return bisect_left(range(sum(weights)), 1, key=binary_search_helper)
+        
+```
